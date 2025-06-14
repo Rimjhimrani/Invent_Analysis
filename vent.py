@@ -899,7 +899,7 @@ def main():
     st.markdown("---")
     st.markdown(
         "<div style='text-align: center; color: #666; font-size: 14px;'>"
-        "© 2024 Agilomatrix - Advanced Inventory Analysis Dashboard"
+        "© 2025 Agilomatrix - Inventory Analysis Dashboard"
         "</div>",
         unsafe_allow_html=True
     )
