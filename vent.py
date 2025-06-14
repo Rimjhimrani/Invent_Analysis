@@ -148,7 +148,7 @@ class InventoryAnalyzer:
         qty_columns = ['qty', 'quantity', 'current_qty', 'stock_qty']
         rm_columns = ['rm', 'rm_qty', 'required_qty', 'norm_qty', 'target_qty', 'rm_in_qty', 'ri_in_qty']
         material_columns = ['material', 'material_code', 'part_number', 'item_code', 'code', 'part_no']
-        desc_columns = ['description', 'item_description', 'part_description', 'desc']
+        desc_columns = ['description', 'item_description', 'part_description', 'desc','part description', 'material_description', 'part_desc']
         value_columns = ['stock_value', 'value', 'amount', 'cost']
         vendor_columns = ['vendor', 'vendor_name', 'supplier', 'supplier_name']
         
@@ -545,6 +545,7 @@ def main():
             sorted_data = sorted(processed_data, key=lambda x: x['Stock_Value'], reverse=True)[:10]
             
             materials = [item['Material'] for item in sorted_data]
+            Description = [item['Material description'] for item in sorted_data]
             qty_values = [item['QTY'] for item in sorted_data]
             rm_values = [item['RM IN QTY'] for item in sorted_data]
             
@@ -605,6 +606,7 @@ def main():
             sorted_variance = sorted(processed_data, key=lambda x: abs(x['Variance_%']), reverse=True)[:10]
             
             materials = [item['Material'] for item in sorted_variance]
+            Description = [item['Material description'] for item in sorted_variance]
             variances = [item['Variance_%'] for item in sorted_variance]
             colors = [analyzer.status_colors[item['Status']] for item in sorted_variance]
             
