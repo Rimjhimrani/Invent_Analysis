@@ -805,19 +805,143 @@ with tab1:
 with tab2:
     st.header("📈 2D Analysis")
     
+    st.subheader("📈 Overview Analysis")
+    
     col1, col2 = st.columns(2)
     
     with col1:
-        fig_variance = analyzer.create_variance_chart(processed_data)
-        st.plotly_chart(fig_variance, use_container_width=True)
+        status_counts = [summary_data[status]['count'] for status in analyzer.status_colors.keys()]
+        status_labels = list(analyzer.status_colors.keys())
+            
+        fig_pie = px.pie(
+            values=status_counts,
+            names=status_labels,
+            title="Inventory Status Distribution",
+            color=status_labels,
+            color_discrete_map=analyzer.status_colors
+        )
+        st.plotly_chart(fig_pie, use_container_width=True)
     
     with col2:
-        fig_comparison = analyzer.create_comparison_chart(processed_data)
-        st.plotly_chart(fig_comparison, use_container_width=True)
+        # Stock Impact Chart
+        fig_stock_impact = analyzer.create_stock_impact_chart(summary_data)
+        st.plotly_chart(fig_stock_impact, use_container_width=True)
     
-    # Scatter plot
-    fig_scatter = analyzer.create_scatter_plot(processed_data)
-    st.plotly_chart(fig_scatter, use_container_width=True)
+    # Section 2: Value Analysis Charts
+    st.subheader("💰 Value Analysis")
+    col1, col2 = st.columns(2)
+     with col1:
+            # Top 10 Parts by Stock Value
+            fig_stock_value = analyzer.create_stock_value_chart(processed_data)
+            st.plotly_chart(fig_stock_value, use_container_width=True)
+        
+        with col2:
+            # Top 10 Materials by Variance
+            fig_variance = analyzer.create_variance_chart(processed_data)
+            st.plotly_chart(fig_variance, use_container_width=True)
+        
+        # Section 3: Comparison Analysis
+        st.subheader("⚖️ Comparison Analysis")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # QTY vs RM Comparison Chart
+            fig_comparison = analyzer.create_comparison_chart(processed_data)
+            st.plotly_chart(fig_comparison, use_container_width=True)
+        
+        with col2:
+            # QTY vs RM Scatter Plot
+            fig_scatter_plot = analyzer.create_scatter_plot(processed_data)
+            st.plotly_chart(fig_scatter_plot, use_container_width=True)
+        
+        # Section 4: Distribution Analysis
+        st.subheader("📊 Distribution Analysis")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Variance Distribution Histogram
+            fig_variance_hist = analyzer.create_variance_histogram(processed_data)
+            st.plotly_chart(fig_variance_hist, use_container_width=True)
+        
+        with col2:
+            # Enhanced QTY vs RM scatter plot with better formatting
+            df_2d = pd.DataFrame(processed_data)
+            fig_scatter = px.scatter(
+                df_2d,
+                x='RM IN QTY',
+                y='QTY',
+                color='Status',
+                size='Stock_Value',
+                hover_data=['Material', 'Description', 'Vendor', 'Variance_%'],
+                title="Current QTY vs Required QTY (Enhanced)",
+                color_discrete_map=analyzer.status_colors
+            )
+            
+            # Add diagonal line (perfect match)
+            max_val = max(df_2d['QTY'].max(), df_2d['RM IN QTY'].max())
+            fig_scatter.add_shape(
+                type="line",
+                x0=0, y0=0,
+                x1=max_val, y1=max_val,
+                line=dict(dash="dash", color="gray"),
+            )
+            
+            # Update layout with better tick formatting
+            fig_scatter.update_layout(
+                xaxis=dict(
+                    tickformat='.0f',
+                    title='Required Quantity (RM IN QTY)'
+                ),
+                yaxis=dict(
+                    tickformat='.0f',
+                    title='Current Quantity (QTY)'
+                ),
+                height=400
+            )
+            
+            st.plotly_chart(fig_scatter, use_container_width=True)
+        
+        # Section 5: Vendor Performance Analysis
+        st.subheader("🏢 Vendor Performance Analysis")
+        
+        # Vendor comparison bar chart
+        vendor_comparison = pd.DataFrame([
+            {
+                'Vendor': vendor,
+                'Short Items': data['short_parts'],
+                'Excess Items': data['excess_parts'],
+                'Normal Items': data['normal_parts']
+            }
+            for vendor, data in vendor_summary.items()
+        ])
+        
+        fig_vendor_bar = px.bar(
+            vendor_comparison.melt(id_vars=['Vendor'], var_name='Status', value_name='Count'),
+            x='Vendor',
+            y='Count',
+            color='Status',
+            title="Vendor Performance Comparison",
+            color_discrete_map={
+                'Short Items': '#dc3545',
+                'Excess Items': '#007bff',
+                'Normal Items': '#28a745'
+            }
+        )
+        
+        # Update layout with better formatting
+        fig_vendor_bar.update_layout(
+            xaxis=dict(
+                tickangle=-45,
+                title='Vendor'
+            ),
+            yaxis=dict(
+                tickformat='.0f',
+                title='Number of Items'
+            ),
+            height=400
+        )
+        
+        st.plotly_chart(fig_vendor_bar, use_container_width=True)
 
 with tab3:
     st.header("🌐 3D Visualization")
