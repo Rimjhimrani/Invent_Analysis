@@ -512,7 +512,7 @@ def main():
                 yaxis_title='Required Quantity',
                 zaxis_title='Stock Value (₹)',
                 camera=dict(
-                    eye=dict(x=1.2, y=1.2, , z=1.2)
+                    eye=dict(x=1.2, y=1.2, z=1.2)
                 )
             ),
             height=600
