@@ -545,7 +545,6 @@ def main():
             sorted_data = sorted(processed_data, key=lambda x: x['Stock_Value'], reverse=True)[:10]
             
             materials = [item['Material'] for item in sorted_data]
-            Description = [item['Material description'] for item in sorted_data]
             qty_values = [item['QTY'] for item in sorted_data]
             rm_values = [item['RM IN QTY'] for item in sorted_data]
             
@@ -606,7 +605,6 @@ def main():
             sorted_variance = sorted(processed_data, key=lambda x: abs(x['Variance_%']), reverse=True)[:10]
             
             materials = [item['Material'] for item in sorted_variance]
-            Description = [item['Material description'] for item in sorted_variance]
             variances = [item['Variance_%'] for item in sorted_variance]
             colors = [analyzer.status_colors[item['Status']] for item in sorted_variance]
             
