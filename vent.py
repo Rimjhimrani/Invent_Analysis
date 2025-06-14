@@ -764,6 +764,7 @@ with tab1:
             <h3>✅ Within Norms</h3>
             <h2>{summary_data['Within Norms']['count']} items</h2>
             <p>Value: ₹{summary_data['Within Norms']['value']:,}</p>
+            <p>{(summary_data['Within Norms']['count']/total_items*100):.1f}% of total</p>
         </div>
         """, unsafe_allow_html=True)
     
@@ -773,6 +774,7 @@ with tab1:
             <h3>📈 Excess Inventory</h3>
             <h2>{summary_data['Excess Inventory']['count']} items</h2>
             <p>Value: ₹{summary_data['Excess Inventory']['value']:,}</p>
+            <p>{(summary_data['Excess Inventory']['count']/total_items*100):.1f}% of total</p>
         </div>
         """, unsafe_allow_html=True)
     
@@ -782,416 +784,302 @@ with tab1:
             <h3>📉 Short Inventory</h3>
             <h2>{summary_data['Short Inventory']['count']} items</h2>
             <p>Value: ₹{summary_data['Short Inventory']['value']:,}</p>
+            <p>{(summary_data['Short Inventory']['count']/total_items*100):.1f}% of total</p>
         </div>
         """, unsafe_allow_html=True)
     
-    # Main charts
-    st.subheader("📊 Key Visualizations")
-    
+    # Charts
     col1, col2 = st.columns(2)
     
     with col1:
-        fig_stock = analyzer.create_stock_value_chart(processed_data)
-        st.plotly_chart(fig_stock, use_container_width=True)
+        st.plotly_chart(analyzer.create_stock_value_chart(processed_data), use_container_width=True)
     
     with col2:
-        fig_impact = analyzer.create_stock_impact_chart(summary_data)
-        st.plotly_chart(fig_impact, use_container_width=True)
-    
-    # Variance histogram
-    fig_hist = analyzer.create_variance_histogram(processed_data)
-    st.plotly_chart(fig_hist, use_container_width=True)
+        st.plotly_chart(analyzer.create_stock_impact_chart(summary_data), use_container_width=True)
 
 with tab2:
     st.header("📈 2D Analysis")
     
-    st.subheader("📈 Overview Analysis")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.plotly_chart(analyzer.create_variance_chart(processed_data), use_container_width=True)
+    
+    with col2:
+        st.plotly_chart(analyzer.create_comparison_chart(processed_data), use_container_width=True)
     
     col1, col2 = st.columns(2)
     
     with col1:
-        status_counts = [summary_data[status]['count'] for status in analyzer.status_colors.keys()]
-        status_labels = list(analyzer.status_colors.keys())
-            
-        fig_pie = px.pie(
-            values=status_counts,
-            names=status_labels,
-            title="Inventory Status Distribution",
-            color=status_labels,
-            color_discrete_map=analyzer.status_colors
-        )
-        st.plotly_chart(fig_pie, use_container_width=True)
+        st.plotly_chart(analyzer.create_scatter_plot(processed_data), use_container_width=True)
     
     with col2:
-        # Stock Impact Chart
-        fig_stock_impact = analyzer.create_stock_impact_chart(summary_data)
-        st.plotly_chart(fig_stock_impact, use_container_width=True)
-    
-    # Section 2: Value Analysis Charts
-    st.subheader("💰 Value Analysis")
-    col1, col2 = st.columns(2)
-     with col1:
-            # Top 10 Parts by Stock Value
-            fig_stock_value = analyzer.create_stock_value_chart(processed_data)
-            st.plotly_chart(fig_stock_value, use_container_width=True)
-        
-        with col2:
-            # Top 10 Materials by Variance
-            fig_variance = analyzer.create_variance_chart(processed_data)
-            st.plotly_chart(fig_variance, use_container_width=True)
-        
-        # Section 3: Comparison Analysis
-        st.subheader("⚖️ Comparison Analysis")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # QTY vs RM Comparison Chart
-            fig_comparison = analyzer.create_comparison_chart(processed_data)
-            st.plotly_chart(fig_comparison, use_container_width=True)
-        
-        with col2:
-            # QTY vs RM Scatter Plot
-            fig_scatter_plot = analyzer.create_scatter_plot(processed_data)
-            st.plotly_chart(fig_scatter_plot, use_container_width=True)
-        
-        # Section 4: Distribution Analysis
-        st.subheader("📊 Distribution Analysis")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Variance Distribution Histogram
-            fig_variance_hist = analyzer.create_variance_histogram(processed_data)
-            st.plotly_chart(fig_variance_hist, use_container_width=True)
-        
-        with col2:
-            # Enhanced QTY vs RM scatter plot with better formatting
-            df_2d = pd.DataFrame(processed_data)
-            fig_scatter = px.scatter(
-                df_2d,
-                x='RM IN QTY',
-                y='QTY',
-                color='Status',
-                size='Stock_Value',
-                hover_data=['Material', 'Description', 'Vendor', 'Variance_%'],
-                title="Current QTY vs Required QTY (Enhanced)",
-                color_discrete_map=analyzer.status_colors
-            )
-            
-            # Add diagonal line (perfect match)
-            max_val = max(df_2d['QTY'].max(), df_2d['RM IN QTY'].max())
-            fig_scatter.add_shape(
-                type="line",
-                x0=0, y0=0,
-                x1=max_val, y1=max_val,
-                line=dict(dash="dash", color="gray"),
-            )
-            
-            # Update layout with better tick formatting
-            fig_scatter.update_layout(
-                xaxis=dict(
-                    tickformat='.0f',
-                    title='Required Quantity (RM IN QTY)'
-                ),
-                yaxis=dict(
-                    tickformat='.0f',
-                    title='Current Quantity (QTY)'
-                ),
-                height=400
-            )
-            
-            st.plotly_chart(fig_scatter, use_container_width=True)
-        
-        # Section 5: Vendor Performance Analysis
-        st.subheader("🏢 Vendor Performance Analysis")
-        
-        # Vendor comparison bar chart
-        vendor_comparison = pd.DataFrame([
-            {
-                'Vendor': vendor,
-                'Short Items': data['short_parts'],
-                'Excess Items': data['excess_parts'],
-                'Normal Items': data['normal_parts']
-            }
-            for vendor, data in vendor_summary.items()
-        ])
-        
-        fig_vendor_bar = px.bar(
-            vendor_comparison.melt(id_vars=['Vendor'], var_name='Status', value_name='Count'),
-            x='Vendor',
-            y='Count',
-            color='Status',
-            title="Vendor Performance Comparison",
-            color_discrete_map={
-                'Short Items': '#dc3545',
-                'Excess Items': '#007bff',
-                'Normal Items': '#28a745'
-            }
-        )
-        
-        # Update layout with better formatting
-        fig_vendor_bar.update_layout(
-            xaxis=dict(
-                tickangle=-45,
-                title='Vendor'
-            ),
-            yaxis=dict(
-                tickformat='.0f',
-                title='Number of Items'
-            ),
-            height=400
-        )
-        
-        st.plotly_chart(fig_vendor_bar, use_container_width=True)
+        st.plotly_chart(analyzer.create_variance_histogram(processed_data), use_container_width=True)
 
 with tab3:
     st.header("🌐 3D Visualization")
     
-    st.subheader("🎯 3D Scatter Plot")
-    fig_3d_scatter = analyzer.create_3d_scatter_plot(processed_data)
-    st.plotly_chart(fig_3d_scatter, use_container_width=True)
+    # Vendor filter for 3D plots
+    st.markdown('<div class="vendor-filter">', unsafe_allow_html=True)
+    col1, col2 = st.columns([3, 1])
     
-    st.subheader("🌊 3D Surface Analysis")
-    fig_3d_surface = analyzer.create_3d_surface_plot(processed_data)
-    st.plotly_chart(fig_3d_surface, use_container_width=True)
+    with col1:
+        all_vendors = sorted(list(set([item['Vendor'] for item in processed_data])))
+        selected_vendors = st.multiselect(
+            "Filter by Vendor",
+            all_vendors,
+            default=all_vendors,
+            help="Select vendors to include in 3D visualization"
+        )
+    
+    with col2:
+        if st.button("Reset Filter"):
+            selected_vendors = all_vendors
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Filter data based on vendor selection
+    filtered_data = [item for item in processed_data if item['Vendor'] in selected_vendors]
+    
+    if filtered_data:
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.plotly_chart(analyzer.create_3d_scatter_plot(filtered_data), use_container_width=True)
+        
+        with col2:
+            st.plotly_chart(analyzer.create_3d_surface_plot(filtered_data), use_container_width=True)
+        
+        # Summary for filtered data
+        st.subheader("📊 Filtered Data Summary")
+        filtered_summary = {
+            'Within Norms': {'count': 0, 'value': 0},
+            'Excess Inventory': {'count': 0, 'value': 0},
+            'Short Inventory': {'count': 0, 'value': 0}
+        }
+        
+        for item in filtered_data:
+            status = item['Status']
+            filtered_summary[status]['count'] += 1
+            filtered_summary[status]['value'] += item['Stock_Value']
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Filtered Items", len(filtered_data))
+        
+        with col2:
+            filtered_value = sum(item['Stock_Value'] for item in filtered_data)
+            st.metric("Filtered Value", f"₹{filtered_value:,}")
+        
+        with col3:
+            excess_filtered = filtered_summary['Excess Inventory']['count']
+            st.metric("Excess (Filtered)", excess_filtered)
+        
+        with col4:
+            short_filtered = filtered_summary['Short Inventory']['count']
+            st.metric("Short (Filtered)", short_filtered)
+    
+    else:
+        st.warning("No data available for selected vendors.")
 
 with tab4:
     st.header("🏢 Vendor Analysis")
     
-    # Vendor filter
-    st.markdown('<div class="vendor-filter">', unsafe_allow_html=True)
-    all_vendors = list(vendor_summary.keys())
-    selected_vendors = st.multiselect(
-        "Filter by Vendor:",
-        options=all_vendors,
-        default=all_vendors,
-        help="Select vendors to include in the analysis"
+    # Vendor summary table
+    st.subheader("📊 Vendor Performance Summary")
+    
+    vendor_df = pd.DataFrame.from_dict(vendor_summary, orient='index')
+    vendor_df = vendor_df.reset_index().rename(columns={'index': 'Vendor'})
+    
+    # Calculate performance metrics
+    vendor_df['Performance_Score'] = (
+        (vendor_df['normal_parts'] / vendor_df['total_parts']) * 100
+    ).round(1)
+    
+    vendor_df['Excess_Rate'] = (
+        (vendor_df['excess_parts'] / vendor_df['total_parts']) * 100
+    ).round(1)
+    
+    vendor_df['Short_Rate'] = (
+        (vendor_df['short_parts'] / vendor_df['total_parts']) * 100
+    ).round(1)
+    
+    # Display vendor metrics
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        best_vendor = vendor_df.loc[vendor_df['Performance_Score'].idxmax(), 'Vendor']
+        best_score = vendor_df['Performance_Score'].max()
+        st.metric("Best Performing Vendor", best_vendor, f"{best_score}% accuracy")
+    
+    with col2:
+        total_vendors = len(vendor_df)
+        st.metric("Total Vendors", total_vendors)
+    
+    with col3:
+        avg_performance = vendor_df['Performance_Score'].mean()
+        st.metric("Average Performance", f"{avg_performance:.1f}%")
+    
+    # Vendor comparison chart
+    fig = go.Figure()
+    
+    fig.add_trace(go.Bar(
+        name='Within Norms',
+        x=vendor_df['Vendor'],
+        y=vendor_df['normal_parts'],
+        marker_color='#28a745'
+    ))
+    
+    fig.add_trace(go.Bar(
+        name='Excess Inventory',
+        x=vendor_df['Vendor'],
+        y=vendor_df['excess_parts'],
+        marker_color='#007bff'
+    ))
+    
+    fig.add_trace(go.Bar(
+        name='Short Inventory',
+        x=vendor_df['Vendor'],
+        y=vendor_df['short_parts'],
+        marker_color='#dc3545'
+    ))
+    
+    fig.update_layout(
+        title="Vendor Performance Comparison",
+        xaxis_title="Vendor",
+        yaxis_title="Number of Parts",
+        barmode='stack',
+        height=400
     )
-    st.markdown('</div>', unsafe_allow_html=True)
     
-    if selected_vendors:
-        # Filter data based on selected vendors
-        filtered_data = [item for item in processed_data if item['Vendor'] in selected_vendors]
-        
-        # Vendor summary table
-        st.subheader("📊 Vendor Summary")
-        vendor_df = pd.DataFrame([
-            {
-                'Vendor': vendor,
-                'Total Parts': data['total_parts'],
-                'Total QTY': f"{data['total_qty']:.1f}",
-                'Total RM': f"{data['total_rm']:.1f}",
-                'Total Value': f"₹{data['total_value']:,}",
-                'Short Parts': data['short_parts'],
-                'Excess Parts': data['excess_parts'],
-                'Normal Parts': data['normal_parts']
-            }
-            for vendor, data in vendor_summary.items()
-            if vendor in selected_vendors
-        ])
-        st.dataframe(vendor_df, use_container_width=True)
-        
-        # Vendor-specific charts
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Vendor parts distribution
-            vendor_parts = [vendor_summary[v]['total_parts'] for v in selected_vendors]
-            fig_vendor_parts = go.Figure(data=[go.Bar(
-                x=selected_vendors,
-                y=vendor_parts,
-                marker_color='#17a2b8',
-                text=vendor_parts,
-                textposition='outside'
-            )])
-            fig_vendor_parts.update_layout(
-                title="Parts Distribution by Vendor",
-                xaxis_title="Vendor",
-                yaxis_title="Number of Parts",
-                height=400
-            )
-            st.plotly_chart(fig_vendor_parts, use_container_width=True)
-        
-        with col2:
-            # Vendor value distribution
-            vendor_values = [vendor_summary[v]['total_value'] for v in selected_vendors]
-            fig_vendor_value = go.Figure(data=[go.Bar(
-                x=selected_vendors,
-                y=vendor_values,
-                marker_color='#28a745',
-                text=[f'₹{v:,}' for v in vendor_values],
-                textposition='outside'
-            )])
-            fig_vendor_value.update_layout(
-                title="Stock Value Distribution by Vendor",
-                xaxis_title="Vendor",
-                yaxis_title="Stock Value (₹)",
-                height=400
-            )
-            st.plotly_chart(fig_vendor_value, use_container_width=True)
-        
-        # Vendor status breakdown
-        st.subheader("📈 Vendor Status Breakdown")
-        
-        # Create stacked bar chart for vendor status
-        short_counts = [vendor_summary[v]['short_parts'] for v in selected_vendors]
-        excess_counts = [vendor_summary[v]['excess_parts'] for v in selected_vendors]
-        normal_counts = [vendor_summary[v]['normal_parts'] for v in selected_vendors]
-        
-        fig_vendor_status = go.Figure()
-        
-        fig_vendor_status.add_trace(go.Bar(
-            name='Short Inventory',
-            x=selected_vendors,
-            y=short_counts,
-            marker_color='#dc3545'
-        ))
-        
-        fig_vendor_status.add_trace(go.Bar(
-            name='Excess Inventory',
-            x=selected_vendors,
-            y=excess_counts,
-            marker_color='#007bff'
-        ))
-        
-        fig_vendor_status.add_trace(go.Bar(
-            name='Within Norms',
-            x=selected_vendors,
-            y=normal_counts,
-            marker_color='#28a745'
-        ))
-        
-        fig_vendor_status.update_layout(
-            title="Inventory Status by Vendor",
-            xaxis_title="Vendor",
-            yaxis_title="Number of Parts",
-            barmode='stack',
-            height=400
-        )
-        
-        st.plotly_chart(fig_vendor_status, use_container_width=True)
-        
-        # Filtered 3D visualization
-        if len(filtered_data) > 0:
-            st.subheader("🌐 3D Analysis (Filtered by Vendor)")
-            fig_3d_filtered = analyzer.create_3d_scatter_plot(filtered_data)
-            st.plotly_chart(fig_3d_filtered, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True)
     
-    else:
-        st.warning("Please select at least one vendor to view the analysis.")
+    # Detailed vendor table
+    st.subheader("📋 Detailed Vendor Metrics")
+    
+    display_df = vendor_df[['Vendor', 'total_parts', 'total_value', 'Performance_Score', 
+                           'Excess_Rate', 'Short_Rate', 'normal_parts', 'excess_parts', 'short_parts']]
+    
+    display_df.columns = ['Vendor', 'Total Parts', 'Total Value (₹)', 'Performance (%)', 
+                         'Excess Rate (%)', 'Short Rate (%)', 'Normal', 'Excess', 'Short']
+    
+    # Format the dataframe for better display
+    display_df['Total Value (₹)'] = display_df['Total Value (₹)'].apply(lambda x: f"₹{x:,}")
+    
+    st.dataframe(
+        display_df,
+        use_container_width=True,
+        hide_index=True
+    )
 
 with tab5:
     st.header("📋 Detailed Data Table")
     
-    # Search and filter options
+    # Filter options
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        search_term = st.text_input("🔍 Search Materials", "")
-    
-    with col2:
         status_filter = st.selectbox(
             "Filter by Status",
-            options=['All'] + list(analyzer.status_colors.keys())
+            ['All'] + list(analyzer.status_colors.keys())
+        )
+    
+    with col2:
+        vendor_filter = st.selectbox(
+            "Filter by Vendor",
+            ['All'] + sorted(list(set([item['Vendor'] for item in processed_data])))
         )
     
     with col3:
-        vendor_filter = st.selectbox(
-            "Filter by Vendor",
-            options=['All'] + list(vendor_summary.keys())
+        sort_by = st.selectbox(
+            "Sort by",
+            ['Material', 'QTY', 'RM IN QTY', 'Variance_%', 'Stock_Value', 'Vendor']
         )
     
-    # Filter data based on search and filters
-    filtered_table_data = processed_data.copy()
-    
-    if search_term:
-        filtered_table_data = [
-            item for item in filtered_table_data
-            if search_term.lower() in item['Material'].lower() or 
-               search_term.lower() in item['Description'].lower()
-        ]
+    # Apply filters
+    display_data = processed_data.copy()
     
     if status_filter != 'All':
-        filtered_table_data = [
-            item for item in filtered_table_data
-            if item['Status'] == status_filter
-        ]
+        display_data = [item for item in display_data if item['Status'] == status_filter]
     
     if vendor_filter != 'All':
-        filtered_table_data = [
-            item for item in filtered_table_data
-            if item['Vendor'] == vendor_filter
-        ]
+        display_data = [item for item in display_data if item['Vendor'] == vendor_filter]
     
-    # Create DataFrame for display
-    if filtered_table_data:
-        table_df = pd.DataFrame([
-            {
-                'Material': item['Material'],
-                'Description': item['Description'],
-                'Vendor': item['Vendor'],
-                'Current QTY': f"{item['QTY']:.1f}",
-                'RM IN QTY': f"{item['RM IN QTY']:.1f}",
-                'Variance %': f"{item['Variance_%']:.1f}%",
-                'Variance Value': f"{item['Variance_Value']:.1f}",
-                'Status': item['Status'],
-                'Stock Value': f"₹{item['Stock_Value']:,}"
-            }
-            for item in filtered_table_data
-        ])
-        
-        # Style the dataframe
-        def color_status(val):
-            if val == 'Within Norms':
-                return 'background-color: #d4edda; color: #155724'
-            elif val == 'Excess Inventory':
-                return 'background-color: #cce5ff; color: #004085'
-            elif val == 'Short Inventory':
-                return 'background-color: #f8d7da; color: #721c24'
-            return ''
-        
-        styled_df = table_df.style.applymap(color_status, subset=['Status'])
-        st.dataframe(styled_df, use_container_width=True)
-        
-        # Export options
-        st.subheader("📥 Export Options")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            csv = table_df.to_csv(index=False)
-            st.download_button(
-                label="Download as CSV",
-                data=csv,
-                file_name=f"inventory_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                mime="text/csv"
-            )
-        
-        with col2:
-            # Create Excel file
-            buffer = io.BytesIO()
-            with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
-                table_df.to_excel(writer, sheet_name='Inventory Analysis', index=False)
-            
-            st.download_button(
-                label="Download as Excel",
-                data=buffer.getvalue(),
-                file_name=f"inventory_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+    # Sort data
+    display_data = sorted(display_data, key=lambda x: x[sort_by], reverse=True)
     
-    else:
-        st.info("No data matches the current filters.")
+    # Convert to DataFrame for display
+    df_display = pd.DataFrame(display_data)
+    
+    # Format columns
+    df_display['QTY'] = df_display['QTY'].round(2)
+    df_display['RM IN QTY'] = df_display['RM IN QTY'].round(2)
+    df_display['Variance_%'] = df_display['Variance_%'].round(2)
+    df_display['Variance_Value'] = df_display['Variance_Value'].round(2)
+    df_display['Stock_Value'] = df_display['Stock_Value'].apply(lambda x: f"₹{x:,}")
+    
+    # Rename columns for display
+    df_display = df_display.rename(columns={
+        'Variance_%': 'Variance (%)',
+        'Variance_Value': 'Variance Value',
+        'Stock_Value': 'Stock Value (₹)'
+    })
+    
+    st.dataframe(
+        df_display,
+        use_container_width=True,
+        hide_index=True
+    )
+    
+    # Download options
+    st.subheader("💾 Download Options")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Convert back to original format for CSV download
+        csv_df = pd.DataFrame(display_data)
+        csv = csv_df.to_csv(index=False)
+        
+        st.download_button(
+            label="📥 Download Filtered Data (CSV)",
+            data=csv,
+            file_name=f"inventory_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            mime="text/csv"
+        )
+    
+    with col2:
+        # Summary report
+        summary_text = f"""
+Inventory Analysis Summary Report
+Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+Total Items Analyzed: {len(processed_data)}
+Tolerance Setting: ±{tolerance}%
+
+Status Breakdown:
+- Within Norms: {summary_data['Within Norms']['count']} items (₹{summary_data['Within Norms']['value']:,})
+- Excess Inventory: {summary_data['Excess Inventory']['count']} items (₹{summary_data['Excess Inventory']['value']:,})
+- Short Inventory: {summary_data['Short Inventory']['count']} items (₹{summary_data['Short Inventory']['value']:,})
+
+Total Stock Value: ₹{sum(item['Stock_Value'] for item in processed_data):,}
+
+Vendor Count: {len(vendor_summary)}
+"""
+        
+        st.download_button(
+            label="📄 Download Summary Report",
+            data=summary_text,
+            file_name=f"inventory_summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+            mime="text/plain"
+        )
 
 # Footer
 st.markdown("---")
-st.markdown(
-    """
-    <div style="text-align: center; color: #666; padding: 20px;">
-        <p>📊 Enhanced 3D Inventory Analysis Dashboard | Built with ❤️ using Streamlit & Plotly</p>
-        <p>Data processed: {total_items} items | Last updated: {timestamp}</p>
-    </div>
-    """.format(
-        total_items=len(processed_data),
-        timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    ),
-    unsafe_allow_html=True
-)
+st.markdown("""
+<div style="text-align: center; color: #666; padding: 20px;">
+    <p>🚀 Enhanced 3D Inventory Analysis Dashboard</p>
+    <p>Built with Streamlit, Plotly, and Python | Real-time inventory variance analysis with 3D visualizations</p>
+</div>
+""", unsafe_allow_html=True)
